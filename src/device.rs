@@ -89,7 +89,7 @@ impl DeviceSpec {
     fn from_xml<'a, 'input: 'a>(node: Node<'a, 'input>) -> Result<Self> {
         #[allow(non_snake_case)]
         let (device_type, friendly_name, services, devices) =
-            find_in_xml! { node => deviceType, friendlyName, serviceList, ?deviceList };
+            find_in_xml! { node => deviceType, friendlyName, ?serviceList, ?deviceList };
 
         #[cfg(feature = "full_device_spec")]
         #[allow(non_snake_case)]
@@ -129,11 +129,15 @@ impl DeviceSpec {
                 .collect::<Result<_>>()?,
             None => Vec::new(),
         };
-        let services = services
-            .children()
-            .filter(Node::is_element)
-            .map(Service::from_xml)
-            .collect::<Result<_>>()?;
+
+        let services = match services {
+            Some(s) => s
+                .children()
+                .filter(Node::is_element)
+                .map(Service::from_xml)
+                .collect::<Result<_>>()?,
+            None => Vec::new(),
+        };
 
         Ok(Self {
             device_type: utils::parse_node_text(device_type)?,
